@@ -1,11 +1,41 @@
 #!/bin/sh
 
 home_dir=${HOME}
-echo ${home_dir}
+
+
+basepath=$(cd `dirname $0`; pwd)
+
+echo ${basepath}
+
+source $basepath/devices.sh
+
+
+init_device_id(){
+    config_file=`basename $0 .sh`
+
+    gain_device_id $config_file".conf"
+    
+    [ "$?" != "0" ] && echo "Problem raised when obtaining device id !" && exit 1
+    
+    ##start to check the devices
+    conf_linum=`cat $config_file.conf | wc -l`
+    
+    if [ "$conf_linum"x == "2"x ];then
+	echo "`cat $config_file.conf`"
+    fi
+
+    ext_device=`sed -n 1p $config_file".conf"`
+    int_device=`sed -n 2p $config_file".conf"`
+
+    echo "!!!!!!!!!!! $ext_device"
+    echo "!!!!!!!!!!! $int_device"
+}
+
+init_device_id
 
 declare -A project_info
-project_info[1]="/AOSP_New 0123456789ABCDEF"
-project_info[2]="/AOSP_Internal 192.168.100.100:5555"
+project_info[1]="/AOSP_New $int_device"
+project_info[2]="/AOSP_Internal $ext_device"
 
 declare -A component_info
 
@@ -17,10 +47,12 @@ check_tools_exists(){
     command -v adb > /dev/null 2>&1 | {echo >&2 "Required tool is not installed, aborting"; exit 1}
 }
 
-init(){
-    adb connect 192.168.100.100:5555
-    adb -s 0123456789ABCDEF remount
-    adb -s 192.168.100.100:5555 remount
+
+
+init(){    
+    
+    adb -s $ext_device remount
+    adb -s $int_device remount
 }
 
 deploy(){
